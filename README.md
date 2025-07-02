@@ -1,23 +1,25 @@
-# MCP Sample Project | MCP 示例项目
+# xiaozhi-mcp-proxy 小智AI MCP代理工具
 
-A powerful interface for extending AI capabilities through remote control, calculations, email operations, knowledge search, and more.
+一个可以把通用MCP Server代理转换成小智AI MCP接入点协议的工具，拓展小智AI MCP接入能力。
 
-一个强大的接口，用于通过远程控制、计算、邮件操作、知识搜索等方式扩展AI能力。
+## 概述
 
-## Overview | 概述
+此项目基于小智AI官方项目[mcp-calculator](https://github.com/78/mcp-calculator)代码升级开发而来。
+新增了 `mcp_stdio_client.py` 文件，可以将MCP `streamable-http` 类协议进行代理转发给小智AI。
 
-MCP (Model Context Protocol) is a protocol that allows servers to expose tools that can be invoked by language models. Tools enable models to interact with external systems, such as querying databases, calling APIs, or performing computations. Each tool is uniquely identified by a name and includes metadata describing its schema.
+## 架构设计
 
-MCP（模型上下文协议）是一个允许服务器向语言模型暴露可调用工具的协议。这些工具使模型能够与外部系统交互，例如查询数据库、调用API或执行计算。每个工具都由一个唯一的名称标识，并包含描述其模式的元数据。
-
-## Features | 特性
-
-- 🔌 Bidirectional communication between AI and external tools | AI与外部工具之间的双向通信
-- 🔄 Automatic reconnection with exponential backoff | 具有指数退避的自动重连机制
-- 📊 Real-time data streaming | 实时数据流传输
-- 🛠️ Easy-to-use tool creation interface | 简单易用的工具创建接口
-- 🔒 Secure WebSocket communication | 安全的WebSocket通信
-
+```mermaid
+flowchart LR
+    A["小智WebSocket服务<br/>wss://api.xiaozhi.me/mcp/"] <--> B["mcp_pipe.py<br/>代理转发"]
+    B <--> C["mcp_stdio_client.py<br/>标准输入输出"]
+    C <--> D["MCP 服务器<br/>远程 MCP 端点"]
+    
+    style A fill:#e1f5fe
+    style B fill:#f3e5f5
+    style C fill:#e8f5e8
+    style D fill:#fff3e0
+```
 ## Quick Start | 快速开始
 
 1. Install dependencies | 安装依赖:
@@ -25,51 +27,84 @@ MCP（模型上下文协议）是一个允许服务器向语言模型暴露可�
 pip install -r requirements.txt
 ```
 
-2. Set up environment variables | 设置环境变量:
+2. 设置环境变量:
 ```bash
 export MCP_ENDPOINT=<your_mcp_endpoint>
+export MCP_URL=<your_mcp_server_url>
+
+#注意 MCP_URL是指的 MCP server 地址，目前仅支持【streamable-http】类型，示例如下：
+#{
+#  "mcpServers": {
+#    "streamable-mcp-server": {
+#      "type": "streamable-http",
+#      "url": "http://127.0.0.1:12306/mcp" #MCP_URL 
+#    }
+#  }
+#}
 ```
 
-3. Run the calculator example | 运行计算器示例:
+3. 运行示例:
 ```bash
-python mcp_pipe.py calculator.py
+python mcp_pipe.py mcp_stdio_client.py
 ```
 
-## Project Structure | 项目结构
+## 项目结构
 
-- `mcp_pipe.py`: Main communication pipe that handles WebSocket connections and process management | 处理WebSocket连接和进程管理的主通信管道
-- `calculator.py`: Example MCP tool implementation for mathematical calculations | 用于数学计算的MCP工具示例实现
-- `requirements.txt`: Project dependencies | 项目依赖
+- `mcp_pipe.py`:  处理WebSocket连接和进程管理的主通信管道
+- `mcp_stdio_client.py`: 可以将MCP `streamable-http` 类协议进行代理转发给小智AI
+- `requirements.txt`: 项目依赖
 
-## Creating Your Own MCP Tools | 创建自己的MCP工具
 
-Here's a simple example of creating an MCP tool | 以下是一个创建MCP工具的简单示例:
+## 使用场景
 
-```python
-from mcp.server.fastmcp import FastMCP
+- 所有支持MCP server的服务，例如接入mcp-chrome 通过小智AI控制和操作浏览器
 
-mcp = FastMCP("YourToolName")
+## 案例1：接入MCP-Chrome 实现浏览器自动化
+1. 请打开[mcp-chrome](https://github.com/hangwin/mcp-chrome/blob/master/README_zh.md)项目，仔细阅读教程，安装和配置 Chrome MCP Server服务。
+默认得到的配置如下:
+```
+{
+  "mcpServers": {
+    "streamable-mcp-server": {
+      "type": "streamable-http",
+      "url": "http://127.0.0.1:12306/mcp" #MCP_URL 
+    }
+  }
+}
 
-@mcp.tool()
-def your_tool(parameter: str) -> dict:
-    """Tool description here"""
-    # Your implementation
-    return {"success": True, "result": result}
+```
+2. 打开 xiaozhi.me后台 获取小智AI MCP接入点:
 
-if __name__ == "__main__":
-    mcp.run(transport="stdio")
+``` bash
+# MCP_ENDPOINT
+wss://api.xiaozhi.me/mcp/?token=<your-token>
 ```
 
-## Use Cases | 使用场景
+3. 复制1和2步骤中的变量，在命令行执行:
 
-- Mathematical calculations | 数学计算
-- Email operations | 邮件操作
-- Knowledge base search | 知识库搜索
-- Remote device control | 远程设备控制
-- Data processing | 数据处理
-- Custom tool integration | 自定义工具集成
+```bash
+export MCP_ENDPOINT=<your_mcp_endpoint>
+export MCP_URL=<your_mcp_server_url>
+python mcp_pipe.py mcp_stdio_client.py
 
-## Requirements | 环境要求
+```
+``` bash
+#成功运行日志
+2025-07-02 16:05:37,639 - MCP_PIPE - INFO - Connecting to WebSocket server...
+2025-07-02 16:05:37,977 - MCP_PIPE - INFO - Successfully connected to WebSocket server
+2025-07-02 16:05:37,995 - MCP_PIPE - INFO - Started mcp_stdio_client.py process
+2025-07-02 16:05:38,221 - INFO - MCP 客户端启动，连接到: http://127.0.0.1:12306/mcp
+2025-07-02 16:05:38,223 - INFO - 收到输入: {"id":0,"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities...
+2025-07-02 16:05:38,232 - INFO - 获得 MCP 会话ID: 21aace19-*****-92e6-3394b2c52c96
+2025-07-02 16:05:38,232 - INFO - 输出响应: {"result": {"protocolVersion": "2024-11-05", "capabilities": {"tools": {}}, "serverInfo": {"name": "...
+2025-07-02 16:05:38,232 - INFO - 发送自动 tools/list 请求
+2025-07-02 16:05:38,738 - INFO - 自动输出 tools/list 响应: {"result": {"tools": [{"name": "get_windows_and_tabs", "description": "Get all currently open browse...
+2025-07-02 16:05:38,738 - INFO - ✅ 自动获取了 23 个 MCP 工具
+```
+4. 演示效果，点击下方图片观看演示视频：
+[![演示视频](https://i2.hdslb.com/bfs/archive/06f0c8c4933fa6e641f272f51753dc17c3158096.jpg@672w_378h_1c_!web-home-common-cover)](https://www.bilibili.com/video/BV1ZS3szLEGT/)
+
+## 环境要求
 
 - Python 3.7+
 - websockets>=11.0.3
@@ -77,19 +112,13 @@ if __name__ == "__main__":
 - mcp>=1.8.1
 - pydantic>=2.11.4
 
-## Contributing | 贡献指南
+## 贡献指南
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
 欢迎贡献代码！请随时提交Pull Request。
 
-## License | 许可证
-
-This project is licensed under the MIT License - see the LICENSE file for details.
+## License 
 
 本项目采用MIT许可证 - 详情请查看LICENSE文件。
 
-## Acknowledgments | 致谢
-
-- Thanks to all contributors who have helped shape this project | 感谢所有帮助塑造这个项目的贡献者
-- Inspired by the need for extensible AI capabilities | 灵感来源于对可扩展AI能力的需求
