@@ -112,6 +112,42 @@ python mcp_pipe.py mcp_stdio_client.py
 - mcp>=1.8.1
 - pydantic>=2.11.4
 
+## Q&A
+
+1. 部分MCP Servers 找不到 streameable-http 传输类型地址MCP_URL，比如：
+```bash
+{
+   "mcpServers": {
+       "12306-mcp": {
+           "command": "npx",
+           "args": [
+               "-y",
+               "12306-mcp"
+           ]
+       }
+   }
+}
+```
+此方式为mcp stdio传输协议方式，我们可以查看下帮助命令，来切换成streamable--http方式
+```bash
+npx -y 12306-mcp --help #帮助命令
+Usage: mcp-server-12306 [options]
+MCP server for 12306
+
+Options:
+  -V, --version  output the version number
+  --host <host>  host to bind server to. Default is localhost. Use 0.0.0.0 to bind to all interfaces.
+  --port <port>  port to listen on for SSE and HTTP transport.
+  -h, --help     display help for command
+
+##启动 streamable-http方式
+npx -y 12306-mcp --port 12305 --host 127.0.0.1
+ Streamable HTTP MCP Server listening at http://127.0.0.1:12305/mcp #此地址即为MCP_URL
+ SSE MCP Server listening at http://127.0.0.1:12305/sse
+```
+MCP协议支持两种类型传输协议：stdio 和 HTTP Streamable，具体查看官方文档[Built-in Transport Types
+](https://modelcontextprotocol.io/docs/concepts/transports#built-in-transport-types)
+
 ## 贡献指南
 
 Contributions are welcome! Please feel free to submit a Pull Request.
